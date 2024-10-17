@@ -5,6 +5,7 @@ Hi folks, here’s how to get you started on the templates:
     oc import-image mysql:5.7 --confirm --reference-policy local
     oc new-project <project>
     oc apply -f quotes.yaml
+    oc new-app quotes
     watch oc get pod
 
 This should work out of the box, please let me know otherwise!
