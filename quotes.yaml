@@ -44,7 +44,7 @@ objects:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: php:7.2
+          name: php:7.3-ubi7
           namespace: openshift
       type: Source
     successfulBuildsHistoryLimit: 5
@@ -146,6 +146,44 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 600
         updatePeriodSeconds: 1
+        post:
+          execNewPod:
+            command:
+              - /bin/sh
+              - -c
+              - |
+                until mysqladmin ping -h quotesdb --silent; do
+                  echo "Waiting for MySQL to be ready...";
+                  sleep 2;
+                done;
+                mysql -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE -h quotesdb -e "
+
+                CREATE TABLE IF NOT EXISTS quote (
+                    id INT PRIMARY KEY,
+                    msg TEXT NOT NULL
+                  );
+                INSERT INTO quote (id, msg) VALUES
+                (1, 'The only limit to our realization of tomorrow is our doubts of today.'),
+                (2, 'Life is 10% what happens to us and 90% how we react to it.'),
+                (3, 'Do not watch the clock. Do what it does. Keep going.'),
+                (4, 'Success is not final, failure is not fatal: It is the courage to continue that counts.'),
+                (5, 'What lies behind us and what lies before us are tiny matters compared to what lies within us.'),
+                (6, 'The best way to predict the future is to invent it.'),
+                (7, 'It always seems impossible until it is done.'),
+                (8, 'If you want to lift yourself up, lift up someone else.'),
+                (9, 'Start where you are. Use what you have. Do what you can.'),
+                (10, 'In the end, we will remember not the words of our enemies, but the silence of our friends.'),
+                (11, 'The only way to do great work is to love what you do.'),
+                (12, 'The purpose of life is not to be happy. It is to be useful, to be honorable, to be compassionate, to have it make some difference.'),
+                (13, 'Happiness is not something ready-made. It comes from your own actions.'),
+                (14, 'Do not go where the path may lead, go instead where there is no path and leave a trail.'),
+                (15, 'The only person you are destined to become is the person you decide to be.'),
+                (16, 'Act as if what you do makes a difference. It does.'),
+                (17, 'Everything you’ve ever wanted is on the other side of fear.'),
+                (18, 'Do what you can, with what you have, where you are.'),
+                (19, 'Don’t watch the clock; do what it does. Keep going.'),
+                (20, 'Strive not to be a success, but rather to be of value.');"
+          failurePolicy: Ignore
       type: Rolling
     template:
       metadata:
@@ -156,6 +194,8 @@ objects:
       spec:
         containers:
         - env:
+          - name: MYSQL_ALLOW_EMPTY_PASSWORD
+            value: quotes
           - name: MYSQL_DATABASE
             value: quotesdb
           - name: MYSQL_PASSWORD
@@ -171,7 +211,7 @@ objects:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
-          - mountPath: /var/lib/mysql/data
+          - mountPath: /var/lib/mysql/
             name: quotesdb-volume-1
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -192,7 +232,7 @@ objects:
         from:
           kind: ImageStreamTag
           name: mysql:5.7
-          namespace: openshift
+          namespace: myregistry
       type: ImageChange
 - apiVersion: v1
   kind: Service
@@ -260,7 +300,7 @@ objects:
     resources:
       requests:
         storage: 300Mi
-    storageClassName: gp2
+    # storageClassName: gp2
     volumeMode: Filesystem
 parameters:
 - name: APP_GIT_URL
